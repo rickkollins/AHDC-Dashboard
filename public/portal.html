@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload documents — __ENGAGEMENT_TITLE__</title>
+<style>
+  :root{ --accent:#4453D8; --ink:#171B2E; --ink-muted:#565F7D; --border:#DEE2EF; --surface:#F5F6FB; --good:#1F9D63; --crit:#C7434B; }
+  *{box-sizing:border-box}
+  body{ margin:0; min-height:100vh; background:var(--surface); font-family:-apple-system,BlinkMacSystemFont,'IBM Plex Sans',sans-serif;
+    color:var(--ink); display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:32px; width:100%; max-width:480px;
+    box-shadow:0 8px 24px rgba(23,27,46,0.08); }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .brand-mark{ width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+  h1{ font-size:17px; margin:0 0 4px; }
+  p.sub{ color:var(--ink-muted); font-size:13px; margin:0 0 24px; line-height:1.5; }
+  .dropzone{ border:2px dashed var(--border); border-radius:12px; padding:28px 16px; text-align:center; color:var(--ink-muted);
+    font-size:13px; cursor:pointer; transition:border-color .15s, background .15s; }
+  .dropzone.drag{ border-color:var(--accent); background:rgba(68,83,216,0.05); }
+  .dropzone strong{ color:var(--accent); }
+  input[type=file]{ display:none; }
+  #filelist{ margin:14px 0 0; padding:0; list-style:none; }
+  #filelist li{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--border); }
+  #filelist li .sz{ color:var(--ink-muted); flex-shrink:0; }
+  textarea{ width:100%; margin-top:16px; padding:10px 12px; border:1px solid var(--border); border-radius:9px; font-size:13px;
+    font-family:inherit; resize:vertical; min-height:56px; }
+  button{ width:100%; margin-top:16px; padding:12px; border:none; border-radius:9px; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14px; cursor:pointer; }
+  button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .msg{ margin-top:14px; font-size:13px; border-radius:9px; padding:10px 12px; display:none; }
+  .msg.ok{ background:rgba(31,157,99,0.12); color:var(--good); }
+  .msg.err{ background:rgba(199,67,75,0.12); color:var(--crit); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><div class="brand-mark">AH</div><div><h1>__ENGAGEMENT_TITLE__</h1></div></div>
+    <p class="sub">__CLIENT_NAME__ — drop your files below to send them securely. No account needed; only your consulting team can see what you upload here.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div><strong>Click to choose files</strong> or drag them here</div>
+    </div>
+    <input type="file" id="file-input" multiple>
+    <ul id="filelist"></ul>
+    <textarea id="note" placeholder="Optional note about these files (e.g. \"Q2 invoices, signed\")"></textarea>
+    <button id="submit-btn" disabled>Upload files</button>
+    <div class="msg ok" id="msg-ok">Thanks — your files were received.</div>
+    <div class="msg err" id="msg-err"></div>
+  </div>
+  <script>
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('file-input');
+    var fileListEl = document.getElementById('filelist');
+    var submitBtn = document.getElementById('submit-btn');
+    var msgOk = document.getElementById('msg-ok');
+    var msgErr = document.getElementById('msg-err');
+    var chosenFiles = [];
+
+    dropzone.addEventListener('click', function(){ fileInput.click(); });
+    dropzone.addEventListener('dragover', function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+    dropzone.addEventListener('dragleave', function(){ dropzone.classList.remove('drag'); });
+    dropzone.addEventListener('drop', function(e){
+      e.preventDefault(); dropzone.classList.remove('drag');
+      addFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', function(){ addFiles(fileInput.files); });
+
+    function addFiles(fileListArg){
+      for (var i = 0; i < fileListArg.length; i++) chosenFiles.push(fileListArg[i]);
+      renderList();
+    }
+    function fmtSize(bytes){
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/1024/1024).toFixed(1) + ' MB';
+    }
+    function renderList(){
+      fileListEl.innerHTML = '';
+      chosenFiles.forEach(function(f){
+        var li = document.createElement('li');
+        var name = document.createElement('span');
+        name.textContent = f.name;
+        var sz = document.createElement('span');
+        sz.className = 'sz';
+        sz.textContent = fmtSize(f.size);
+        li.appendChild(name); li.appendChild(sz);
+        fileListEl.appendChild(li);
+      });
+      submitBtn.disabled = chosenFiles.length === 0;
+    }
+
+    submitBtn.addEventListener('click', async function(){
+      msgOk.style.display = 'none'; msgErr.style.display = 'none';
+      submitBtn.disabled = true; submitBtn.textContent = 'Uploading…';
+      var fd = new FormData();
+      chosenFiles.forEach(function(f){ fd.append('files', f); });
+      fd.append('note', document.getElementById('note').value || '');
+      try {
+        var res = await fetch(window.location.pathname + '/upload', { method: 'POST', body: fd });
+        var body = await res.json().catch(function(){ return {}; });
+        if (res.ok) {
+          msgOk.style.display = 'block';
+          chosenFiles = []; renderList();
+          document.getElementById('note').value = '';
+          submitBtn.textContent = 'Upload files';
+        } else {
+          msgErr.textContent = body.error || 'Something went wrong. Please try again.';
+          msgErr.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Upload files';
+        }
+      } catch (e) {
+        msgErr.textContent = 'Could not reach the server. Please check your connection and try again.';
+        msgErr.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload files';
+      }
+    });
+  </script>
+</body>
+</html>

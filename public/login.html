@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AHDC Engagements — Sign in</title>
+<style>
+  :root{ --accent:#4453D8; --ink:#171B2E; --ink-muted:#565F7D; --border:#DEE2EF; --surface:#F5F6FB; --crit:#C7434B; }
+  *{box-sizing:border-box}
+  body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--surface);
+    font-family:-apple-system,BlinkMacSystemFont,'IBM Plex Sans',sans-serif; color:var(--ink); }
+  .card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:36px 32px; width:100%; max-width:360px;
+    box-shadow:0 8px 24px rgba(23,27,46,0.08); }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+  .brand-mark{ width:36px; height:36px; border-radius:9px; background:var(--accent); color:#fff; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:14px; }
+  h1{ font-size:16px; margin:0; }
+  p.sub{ color:var(--ink-muted); font-size:12.5px; margin:2px 0 0; }
+  label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  input[type=password]{ width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:9px; font-size:14px; margin-bottom:16px; }
+  button{ width:100%; padding:11px; border:none; border-radius:9px; background:var(--accent); color:#fff; font-weight:700; font-size:14px; cursor:pointer; }
+  button:hover{ opacity:0.92; }
+  .err{ color:var(--crit); font-size:12.5px; margin:-8px 0 14px; display:none; }
+</style>
+</head>
+<body>
+  <form class="card" id="login-form">
+    <div class="brand"><div class="brand-mark">AH</div><div><h1>AHDC Engagements</h1><p class="sub">Sign in to continue</p></div></div>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autofocus required>
+    <div class="err" id="err">Incorrect password. Please try again.</div>
+    <button type="submit">Sign in</button>
+  </form>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e){
+      e.preventDefault();
+      var err = document.getElementById('err');
+      err.style.display = 'none';
+      var password = document.getElementById('password').value;
+      try {
+        var res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: password })
+        });
+        if (res.ok) { window.location.href = '/'; return; }
+        err.style.display = 'block';
+      } catch (e2) {
+        err.textContent = 'Could not reach the server. Please try again.';
+        err.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

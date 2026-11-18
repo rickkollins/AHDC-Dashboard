@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+
+# Live data and client uploads — these contain real client information
+data/
+uploads/
+backups/
+seed-data*.json
+!scripts/*.js
+
+# Logs / OS clutter
+*.log
+.DS_Store
